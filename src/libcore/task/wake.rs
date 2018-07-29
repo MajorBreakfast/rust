@@ -42,7 +42,7 @@ impl Waker {
     /// `Arc` type and the safe `Wake` trait.
     #[inline]
     pub unsafe fn new(inner: NonNull<dyn UnsafeWake>) -> Self {
-        Waker { inner: inner }
+        Waker { inner }
     }
 
     /// Wake up the task associated with this `Waker`.
@@ -120,7 +120,7 @@ impl LocalWaker {
     /// on the current thread.
     #[inline]
     pub unsafe fn new(inner: NonNull<dyn UnsafeWake>) -> Self {
-        LocalWaker { inner: inner }
+        LocalWaker { inner }
     }
 
     /// Wake up the task associated with this `LocalWaker`.
@@ -159,7 +159,7 @@ impl LocalWaker {
 impl From<LocalWaker> for Waker {
     #[inline]
     fn from(local_waker: LocalWaker) -> Self {
-        Waker { inner: local_waker.inner }
+        unsafe { mem::transmute::<LocalWaker, Waker>(local_waker) }
     }
 }
 
@@ -167,9 +167,7 @@ impl Clone for LocalWaker {
     #[inline]
     fn clone(&self) -> Self {
         let waker = unsafe { self.inner.as_ref().clone_raw() };
-        let inner = waker.inner;
-        mem::forget(waker);
-        LocalWaker { inner }
+        unsafe { mem::transmute::<Waker, LocalWaker>(waker) }
     }
 }
 
